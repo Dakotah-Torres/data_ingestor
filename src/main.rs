@@ -21,8 +21,12 @@ async fn main() {
 
     // The 'while let' loop stays open as long as Binance keeps sending data
     while let Some(message) = read.next().await {
+        println!("--- Heartbeat: Packet Received ---");
         match message {
-            Ok(_) => println!("New Market Event Received!"),
+            Ok(msg) => {
+                let text = msg.to_text().unwrap_or("Empty Message");
+                println!("RAW DATA: {}", text);
+            }
             Err(e) => eprintln!("Error receiving message: {}", e),
         }
     }
