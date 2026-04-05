@@ -1,33 +1,20 @@
-use tokio_tungstenite::connect_async;
-use url::Url;
+use data_ingestor::network;
 use futures_util::StreamExt;
 
 #[tokio::main]
 async fn main() {
-    let socket_url = "wss://stream.binance.us:9443/ws/btcusdt@trade";
-    let url = Url::parse(socket_url).expect("Invalid URL");
+    println!(" ------ Engine Starting ------ ");
 
-    // This is the 'Handshake'
-    let (ws_stream, _) = match connect_async(url.to_string()).await {
-        Ok(stream) => stream, 
-        Err(e) => {
-            eprintln!("Failed to connect: {}", e);
-            return;
-        }
-    };
-    println!("Connected to Binance Firehose!");
+    let url = "wss://stream.binance.com:9443/ws/btcusdt@trade";
+    let stream = network::connect_to_binance_stream(url).await;
 
-    let (_write, mut read) = ws_stream.split();
+    println!("Connected to Binance stream. Listening for data...");
 
-    // The 'while let' loop stays open as long as Binance keeps sending data
+    let (_write, mut read) = stream.split();
     while let Some(message) = read.next().await {
-        println!("--- Heartbeat: Packet Received ---");
-        match message {
-            Ok(msg) => {
-                let text = msg.to_text().unwrap_or("Empty Message");
-                println!("RAW DATA: {}", text);
-            }
-            Err(e) => eprintln!("Error receiving message: {}", e),
+        if let Ok(msg) = message {
+            // We will move the 'Slicer' logic into parser/mod.rs next
+            println!("Received packet: {}", msg.to_text().unwrap_or(""));
         }
     }
 }
