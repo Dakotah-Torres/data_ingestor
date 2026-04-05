@@ -8,7 +8,13 @@ async fn main() {
     let url = Url::parse(socket_url).expect("Invalid URL");
 
     // This is the 'Handshake'
-    let (ws_stream, _) = connect_async(url.to_string()).await.expect("Failed to connect");
+    let (ws_stream, _) = match connect_async(url.to_string()).await {
+        Ok(stream) => stream, 
+        Err(e) => {
+            eprintln!("Failed to connect: {}", e);
+            return;
+        }
+    };
     println!("Connected to Binance Firehose!");
 
     let (_write, mut read) = ws_stream.split();
