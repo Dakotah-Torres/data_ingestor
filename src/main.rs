@@ -4,7 +4,7 @@ use futures_util::StreamExt;
 
 #[tokio::main]
 async fn main() {
-    let socket_url = "wss://stream.binance.com:9443/ws/btcusdt@trade";
+    let socket_url = "wss://stream.binance.us:9443/ws/btcusdt@trade";
     let url = Url::parse(socket_url).expect("Invalid URL");
 
     // This is the 'Handshake'
