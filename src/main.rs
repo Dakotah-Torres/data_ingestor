@@ -7,7 +7,7 @@ use futures_util::StreamExt;
 async fn main() {
     println!(" ------ Engine Starting ------ ");
 
-    let url = "wss://stream.binance.com:9443/ws/btcusdt@trade";
+    let url = "wss://stream.binance.us:9443/ws/btcusdt@trade";
     let stream = network::connect_to_binance_stream(url).await;
 
     println!("Connected to Binance stream. Listening for data...");
