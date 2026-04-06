@@ -1,3 +1,5 @@
+pub mod trade;
+
 pub fn extract_price(raw: &str) -> Option<&str> {
     let key = "\"p\":\"";
     let start = raw.find(key)? + key.len();
