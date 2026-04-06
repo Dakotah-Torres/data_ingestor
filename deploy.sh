@@ -18,7 +18,7 @@ git commit -m "$MESSAGE"
 
 echo "Merging dev into main and pushing ..."
 git checkout main
-git merge dev
+git merge dev --no-edit
 git push origin main
 
 
