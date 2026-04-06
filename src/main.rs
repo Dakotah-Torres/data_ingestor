@@ -1,5 +1,7 @@
 use data_ingestor::network;
+use data_ingestor::parser;
 use futures_util::StreamExt;
+
 
 #[tokio::main]
 async fn main() {
@@ -13,8 +15,12 @@ async fn main() {
     let (_write, mut read) = stream.split();
     while let Some(message) = read.next().await {
         if let Ok(msg) = message {
-            // We will move the 'Slicer' logic into parser/mod.rs next
-            println!("Received packet: {}", msg.to_text().unwrap_or(""));
+            if let Some(text) = msg.to_text().ok(){
+                if let (Some(price), Some(quant)) = (parser::extract_price(text), parser::extract_quantity(text)){
+                    println!("Price: {} | Qt {}", price, quant );
+                }
+                
+            }
         }
     }
 }
