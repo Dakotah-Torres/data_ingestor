@@ -1,5 +1,6 @@
 use data_ingestor::network;
 use data_ingestor::parser;
+use data_ingestor::models;
 use futures_util::StreamExt;
 
 
@@ -15,11 +16,16 @@ async fn main() {
     let (_write, mut read) = stream.split();
     while let Some(message) = read.next().await {
         if let Ok(msg) = message {
-            if let Some(text) = msg.to_text().ok(){
-                if let (Some(price), Some(quant)) = (parser::extract_price(text), parser::extract_quantity(text)){
-                    println!("Price: {} | Qt {}", price, quant );
+            if let Ok(text) = msg.to_text() {
+                let price_opt = parser::extract_price(text);
+                let quant_opt = parser::extract_quantity(text);
+
+                if let (Some(price_opt), Some(quant_opt)) = (price_opt, quant_opt) {
+                    if let Some(trade) = models::parse_trade(price_opt, quant_opt) {
+                        println!("Received Trade - Price: {}, Quantity: {}", trade.price, trade.quant);
+                    }
                 }
-                
+
             }
         }
     }
