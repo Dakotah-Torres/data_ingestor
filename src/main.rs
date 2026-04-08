@@ -20,9 +20,9 @@ async fn main() {
                 let price_opt = parser::extract_price(text);
                 let quant_opt = parser::extract_quantity(text);
 
-                if let (Some(price_opt), Some(quant_opt)) = (price_opt, quant_opt) {
-                    if let Some(trade) = models::parse_trade(price_opt, quant_opt) {
-                        println!("Received Trade - Price: {}, Quantity: {}", trade.price, trade.quant);
+                if let (Some(p), Some(q)) = (price_opt, quant_opt) {
+                    if let Some(trade) = models::parse_trade(p,q) {
+                        println!("Received Trade - Price: {}, Quantity: {}, Dollar Amount ${}", trade.price, trade.quant, (trade.price * trade.quant));
                     }
                 }
 
