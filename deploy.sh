@@ -23,4 +23,4 @@ git push origin main
 
 git checkout dev
 
-echo "Deployed."
+echo "Deployed!"
