@@ -75,11 +75,15 @@ impl DoubleBuffer {
         buffer.save_and_clean(stream_type, symbol)
     }
 
-    pub fn should_swap(){
-        
-    }
     
     pub fn swap(){
+        if self.active.trigger_swap() {
+            let active_buff = self.active.unlock()
+            let standby_buff = self.standby.unlock()
+
+            self.active = standby_buff 
+
+        }
 
     }
 }
