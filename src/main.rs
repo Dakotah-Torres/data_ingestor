@@ -1,10 +1,10 @@
-// use data_ingestor::network;
+use data_ingestor::network::kraken;
 // use data_ingestor::parser;
-// use futures_util::StreamExt;
 
 
 #[tokio::main]
 async fn main() {
     println!(" ------ Engine Starting ------ ");
-
+    kraken::kraken_ticker_data()
+        .await;
 }
