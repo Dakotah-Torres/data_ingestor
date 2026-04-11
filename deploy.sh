@@ -4,8 +4,8 @@ set -e
 
 MESSAGE="$1"
 
-if [ -z "$MESSAGE"]; then
-    echo "Usage : ./deploy.sh \" your commit message\""
+if [ -z "$MESSAGE" ]; then
+    echo "Usage : ./deploy.sh \"your commit message\""
     exit 1 
 fi 
 
@@ -18,9 +18,8 @@ git commit -m "$MESSAGE"
 
 echo "Merging dev into main and pushing ..."
 git checkout main
-git merge dev
+git merge dev --no-edit
 git push origin main
-
 
 git checkout dev
 
