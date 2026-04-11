@@ -4,9 +4,16 @@ use url::Url;
 use futures_util:: {SinkExt, StreamExt};
 use futures_util::stream::SplitStream;
 use serde::Serialize;
-
-
+use std::time:: {SystemTime, UNIX_EPOCH};
+use std::collections::HashMap;
+use sha2::{Sha256, Digest, Sha512};
+use hmac:: { Hmac, Mac, KeyInit};
 pub use tokio_tungstenite::tungstenite::protocol::Message;
+
+use base64::{Engine as _, engine::general_purpose};
+
+type HmacSha512 = Hmac<Sha512>;
+
 
 pub mod kraken_ticker;
 pub mod kraken_orders;
@@ -16,7 +23,7 @@ pub type KrakenStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub type KrakenReadStream = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 pub const KRAKEN_PUB_URL: &str = "wss://ws.kraken.com/v2";
-pub const KRAKEN_AUTH_URL: &str = "wss://ws.kraken.com/v2";
+pub const KRAKEN_AUTH_URL: &str = "wss://ws-l3.kraken.com/v2";
 pub const CHANNEL_BOOK_L2: &str = "book";
 pub const CHANNEL_TICKER_L1: &str = "ticker";
 pub const CHANNEL_ORDERS_L3: &str = "level3";
@@ -44,3 +51,57 @@ pub async fn kraken_trade_connect<T: Serialize>(connection_request: T, _url:&str
 
 }
 
+pub async fn get_kraken_ws_token() -> Result<String, anyhow::Error> {
+    // generate nonce
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis()
+        .to_string();
+
+    // build post body
+    let mut params = HashMap::new();
+    params.insert("nonce", nonce.as_str());
+    let post_data = serde_urlencoded::to_string(&params)?;
+
+    // read credentials from .env
+    let api_key    = std::env::var("KRAKEN_API_KEY")?;
+    let api_secret = std::env::var("KRAKEN_API_SECRET")?;
+
+    // step 1 — SHA256 hash of nonce + post body
+    let encoded     = format!("{}{}", nonce, post_data);
+    let sha256_hash = Sha256::digest(encoded.as_bytes());
+
+    // step 2 — prepend URL path to the hash
+    let url_path      = "/0/private/GetWebSocketsToken";
+    let secret_bytes = general_purpose::STANDARD.decode(&api_secret)?;
+    let mut mac       = HmacSha512::new_from_slice(&secret_bytes)?;
+    mac.update(url_path.as_bytes());
+    mac.update(&sha256_hash);
+    let signature = general_purpose::STANDARD.encode(mac.finalize().into_bytes());
+    // step 3 — POST to Kraken REST API
+    let client   = reqwest::Client::new();
+    let response = client
+        .post(format!("https://api.kraken.com{}", url_path))
+        .header("API-Key", &api_key)
+        .header("API-Sign", &signature)
+        .form(&params)
+        .send()
+        .await?;
+
+    // step 4 — parse the token from the response
+    let body: serde_json::Value = response.json().await?;
+
+    if let Some(errors) = body["error"].as_array() {
+        if !errors.is_empty() {
+            anyhow::bail!("Kraken API error: {:?}", errors);
+        }
+    }
+
+    let token = body["result"]["token"]
+        .as_str()
+        .ok_or_else(|| anyhow::anyhow!("Token not found in response"))?
+        .to_string();
+
+    Ok(token)
+}
