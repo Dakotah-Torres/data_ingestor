@@ -1,6 +1,8 @@
 
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use std::time:: {SystemTime, UNIX_EPOCH};
+
 pub struct DataBuffer {
     messages: Vec<String>,
     capacity: usize,
@@ -28,8 +30,15 @@ impl DataBuffer {
       self.messages.len() >= (self.capacity as f32 * self.cap_trigger) as usize 
     }
 
-    pub fn save_and_clean(&mut self) -> Result<(), anyhow::Error> {
-        let file = File::create("buffer_data.bin")?;
+    pub fn save_and_clean(&mut self, stream_type: &str, symbol: &str) -> Result<String, anyhow::Error> {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis()
+            .to_string();
+        
+        let file_path = format!("{}_{}_{}.bin", stream_type, symbol, timestamp);
+        let file = File::create(&file_path)?;
 
         let mut writer = BufWriter::new(file);
 
@@ -37,8 +46,6 @@ impl DataBuffer {
 
         writer.flush()?;
         self.messages.clear();
-        Ok(())
+        Ok(file_path)
     }
-
-
 }
