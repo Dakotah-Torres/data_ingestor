@@ -2,6 +2,8 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tokio::net::TcpStream;
 use url::Url;
 
+pub mod kraken;
+
 pub type BinanceStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
 
