@@ -1,12 +1,14 @@
 
-use data_ingestor::network::kraken_book;
+use data_ingestor::network::kraken_orders;
+
 // use data_ingestor::parser;
 
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().expect(".env file not found");
     println!(" ------ Engine Starting ------ ");
-    kraken_book::kraken_book_data_feed()
+    kraken_orders::kraken_order_data_feed()
         .await;
 
 

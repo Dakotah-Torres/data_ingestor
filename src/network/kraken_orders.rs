@@ -1,11 +1,8 @@
-// use futures_util::StreamExt;
+use std::env;
+use futures_util::StreamExt;
 use serde::{Serialize, Deserialize};
-
-// use tokio_tungstenite::tungstenite::protocol::Message;
-
-
-
-// use super::{KRAKEN_AUTH_URL, CHANNEL_ORDERS_L3, kraken_trade_connect};
+use tokio_tungstenite::tungstenite::protocol::Message;
+use super::{KRAKEN_AUTH_URL, CHANNEL_ORDERS_L3, kraken_trade_connect};
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -65,4 +62,36 @@ pub struct KrakenOrderResObject<'a> {
     timestamp: &'a str
 
 }
+
+
+pub async fn kraken_order_data_feed(){
+    let api_key = env::var("KRAKEN_WEB_SOCKET_KEY")
+        .expect("KRAKEN_API_SECRET not set in .env");
+    println!("------ Order Engine Starting ------ ");
+    println!("API_Key: {} ", api_key);
+    let params = KrakenOrdersReqInnerParams {
+        channel: CHANNEL_ORDERS_L3.to_string(),
+        symbol: vec!["BTC/USD".to_string()],
+        depth: OrderDepth::OneHundred,
+        snapshot: false,
+        token: api_key
+    };
+
+    let order_request = KrakenOrdersReqOuter {
+        method: "subscribe".to_string(),
+        params: params,
+        req_id: 1234
+    };
+
+    let mut stream  = kraken_trade_connect(order_request, KRAKEN_AUTH_URL)
+        .await;
+
+    while let Some(message) = stream.next().await {
+        if let Ok(Message::Text(msg)) = message {
+            println!("{}", msg)
+        }
+    }
+}
+
+
 
