@@ -17,20 +17,26 @@ pub type KrakenStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub type KrakenReadStream = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 pub use tokio_tungstenite::tungstenite::protocol::Message;
-#[derive(Serialize, Deserialize, Debug)]
-
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(into ="u32")]
 pub enum BookDepth {
-    #[serde(rename = "10")]
-    Ten, 
-    #[serde(rename = "25")]
-    TwintyFive,
-    #[serde(rename = "100")]
-    OneHundred,
-    #[serde(rename = "500")]
-    FiveHundred, 
-    #[serde(rename = "1000")]
-    OneThoudand
+   Ten = 10,
+   TwentyFive = 25,
+   OneHundred = 100,
+   FiveHundred = 500,
+   OneThousand = 1000,
+}
 
+impl From<BookDepth> for u32 {
+    fn from(depth: BookDepth) -> u32 {
+        match depth {
+            BookDepth::Ten => 10,
+            BookDepth::TwentyFive => 25,
+            BookDepth::OneHundred => 100,
+            BookDepth::FiveHundred => 500,
+            BookDepth::OneThousand => 1000,
+        }
+    }
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KrakenTickerReqInner {
@@ -108,13 +114,6 @@ pub struct KrakenBookResOuter <'a>{
     data: Vec<KrakenBookObject<'a>>
 }
 
-
-
-
-
-
-
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KrakenOrdersReq {
 
@@ -127,8 +126,10 @@ pub struct KrakenOrdersRes {
 
 
 
-pub async fn kraken_trade_connect(connection_request: KrakenTickerReqOuter ) -> KrakenReadStream {
-    let url = Url::parse(KRAKEN_PUB_URL).expect("Invalid URL");
+pub async fn kraken_trade_connect<T: Serialize>(connection_request: T, _url:&str) -> KrakenReadStream {
+
+    let url = Url::parse(_url).expect("Invalid URL");
+    
     let(ws_stream, _) = connect_async(url.to_string())
         .await
         .expect("Failed to Connect");
@@ -147,7 +148,7 @@ pub async fn kraken_trade_connect(connection_request: KrakenTickerReqOuter ) -> 
 }
 
 pub async fn kraken_ticker_data(){
-    println!(" ------ Engine Starting ------ ");
+    println!(" ------ Ticker Engine Starting ------ ");
     let inner = KrakenTickerReqInner {
         channel: CHANNEL_TICKER_L1.to_string(),
         symbol: vec!["BTC/USD".to_string()],
@@ -159,7 +160,7 @@ pub async fn kraken_ticker_data(){
         req_id: 231,
     };
 
-    let mut stream = kraken_trade_connect(outer)
+    let mut stream = kraken_trade_connect(outer, KRAKEN_PUB_URL)
             .await;
 
     while let Some(message) = stream.next().await {
@@ -168,3 +169,30 @@ pub async fn kraken_ticker_data(){
         }
     }
 }
+
+
+pub async fn kraken_book_data_feed(){
+    println!(" ------ Book Engine Starting ------ ");
+    let inner = KrakenBookReqInner {
+        channel: CHANNEL_BOOK_L2.to_string(),
+        symbol: vec!["BTC/USD".to_string()],
+        depth: BookDepth::OneHundred,
+        snapshot:false
+    };
+    let outer = KrakenBookReqOuter {
+        method: "subscribe".to_string(),
+        params: inner,
+        req_id: 1234
+    };
+
+    let mut stream = kraken_trade_connect(outer, KRAKEN_PUB_URL)
+        .await;
+
+
+    while let Some(message) = stream.next().await {
+        if let Ok(Message::Text(msg)) = message {
+            println!("{}", msg)
+        }
+    }
+}
+
