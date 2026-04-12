@@ -67,7 +67,8 @@ impl DoubleBuffer {
 
     pub fn active_push(&self, message: String){
         let mut buffer = self.active.lock().unwrap();
-        buffer.push_message(message)
+            buffer.push_message(message)
+    
     }
 
     pub fn standby_save(&self, stream_type: &str, symbol: &str) -> Result<String, anyhow::Error>{
@@ -76,14 +77,7 @@ impl DoubleBuffer {
     }
 
     
-    pub fn swap(){
-        if self.active.trigger_swap() {
-            let active_buff = self.active.unlock()
-            let standby_buff = self.standby.unlock()
-
-            self.active = standby_buff 
-
-        }
-
+    pub fn swap(&mut self){
+            std::mem::swap(&mut self.active, &mut self.standby)
     }
 }
