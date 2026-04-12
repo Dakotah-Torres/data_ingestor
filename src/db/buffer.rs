@@ -2,6 +2,7 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::time:: {SystemTime, UNIX_EPOCH};
+use std::sync::{Arc, Mutex};
 
 pub struct DataBuffer {
     messages: Vec<String>,
@@ -47,5 +48,36 @@ impl DataBuffer {
         writer.flush()?;
         self.messages.clear();
         Ok(file_path)
+    }
+}
+
+
+pub struct DoubleBuffer {
+    active: Arc<Mutex<DataBuffer>>,
+    standby: Arc<Mutex<DataBuffer>>,
+}
+
+impl DoubleBuffer {
+    pub fn new(capacity: usize, trigger: f32 ) -> Self {
+        DoubleBuffer {
+            active: Arc::new(Mutex::new(DataBuffer::new(capacity, trigger))),
+            standby: Arc::new(Mutex::new(DataBuffer::new(capacity, trigger)))
+        }
+    }
+
+    pub fn active_push(&self, message: String){
+        let mut buffer = self.active.lock().unwrap();
+            buffer.push_message(message)
+    
+    }
+
+    pub fn standby_save(&self, stream_type: &str, symbol: &str) -> Result<String, anyhow::Error>{
+        let mut buffer = self.standby.lock().unwrap();
+        buffer.save_and_clean(stream_type, symbol)
+    }
+
+    
+    pub fn swap(&mut self){
+            std::mem::swap(&mut self.active, &mut self.standby)
     }
 }
