@@ -8,16 +8,15 @@ use std::time:: {SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
 use sha2::{Sha256, Digest, Sha512};
 use hmac:: { Hmac, Mac, KeyInit};
-pub use tokio_tungstenite::tungstenite::protocol::Message;
-
 use base64::{Engine as _, engine::general_purpose};
 
+pub use tokio_tungstenite::tungstenite::protocol::Message;
+
+pub mod book;
+pub mod orders;
+pub mod ticker;
+
 type HmacSha512 = Hmac<Sha512>;
-
-
-pub mod kraken_ticker;
-pub mod kraken_orders;
-pub mod kraken_book;
 
 pub type KrakenStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 pub type KrakenReadStream = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
@@ -28,7 +27,6 @@ pub const CHANNEL_BOOK_L2: &str = "book";
 pub const CHANNEL_TICKER_L1: &str = "ticker";
 pub const CHANNEL_ORDERS_L3: &str = "level3";
 pub const CHANNEL_TRADES: &str = "trade";
-
 
 pub async fn kraken_trade_connect<T: Serialize>(connection_request: T, _url:&str) -> KrakenReadStream {
 

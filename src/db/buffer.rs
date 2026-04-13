@@ -2,7 +2,7 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::time:: {SystemTime, UNIX_EPOCH};
-use std::sync::{Arc, Mutex};
+use std::sync::{ Mutex};
 
 pub struct DataBuffer {
     messages: Vec<String>,
@@ -51,33 +51,35 @@ impl DataBuffer {
     }
 }
 
+struct Inner {
+    active: DataBuffer,
+    standby: DataBuffer,
+}
 
 pub struct DoubleBuffer {
-    active: Arc<Mutex<DataBuffer>>,
-    standby: Arc<Mutex<DataBuffer>>,
+    inner: Mutex<Inner>,
 }
+
+
 
 impl DoubleBuffer {
     pub fn new(capacity: usize, trigger: f32 ) -> Self {
+        let active = DataBuffer::new(capacity, trigger);
+        let standby = DataBuffer::new(capacity, trigger);
+        let inner = Inner{active, standby};
+
         DoubleBuffer {
-            active: Arc::new(Mutex::new(DataBuffer::new(capacity, trigger))),
-            standby: Arc::new(Mutex::new(DataBuffer::new(capacity, trigger)))
+            inner: Mutex::new(inner), 
         }
     }
 
-    pub fn active_push(&self, message: String){
-        let mut buffer = self.active.lock().unwrap();
-            buffer.push_message(message)
-    
-    }
-
-    pub fn standby_save(&self, stream_type: &str, symbol: &str) -> Result<String, anyhow::Error>{
-        let mut buffer = self.standby.lock().unwrap();
-        buffer.save_and_clean(stream_type, symbol)
-    }
-
-    
-    pub fn swap(&mut self){
-            std::mem::swap(&mut self.active, &mut self.standby)
+    pub fn push_swap_and_save(&self, message: String, stream_type: &str, symbol: &str) {
+        let mut buffer = self.inner.lock().unwrap();
+        let inner: &mut Inner = &mut *buffer;
+            inner.active.push_message(message);
+            if inner.active.trigger_swap() {
+                std::mem::swap(&mut inner.active, &mut inner.standby);
+                let _ = buffer.standby.save_and_clean(stream_type, symbol);
+            }
     }
 }

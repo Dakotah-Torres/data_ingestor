@@ -1,5 +1,5 @@
 
-use helix_feed::network::kraken_orders;
+use helix_feed::connectors::kraken::orders;
 
 // use data_ingestor::parser;
 
@@ -8,7 +8,7 @@ use helix_feed::network::kraken_orders;
 async fn main() {
     dotenvy::dotenv().expect(".env file not found");
     println!(" ------ Engine Starting ------ ");
-    kraken_orders::kraken_order_data_feed()
+    orders::kraken_order_data_feed()
         .await;
 
 
